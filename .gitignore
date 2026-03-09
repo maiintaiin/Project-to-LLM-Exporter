@@ -1,0 +1,11 @@
+# 忽略 PyInstaller 打包產生的暫存檔與資料夾
+build/
+dist/
+*.spec
+
+# 忽略 Python 產生的快取檔
+__pycache__/
+*.pyc
+
+# 忽略這個工具自己匯出的 Markdown 結果檔
+*_project_context.md
