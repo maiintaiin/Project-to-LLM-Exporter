@@ -2,14 +2,42 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
-# 預設要忽略的資料夾
-IGNORE_DIRS = {'.git', '.vscode', '.idea', '__pycache__', 'node_modules', 'venv', 'env', 'build', 'dist', 'out'}
+# 擴充忽略資料夾：加入 Visual Studio 常見的編譯與暫存資料夾
+IGNORE_DIRS = {
+    '.git', '.vscode', '.idea', '__pycache__', 'node_modules', 'venv', 'env', 
+    'build', 'dist', 'out', 'x64', 'x86', 'Debug', 'Release', '.vs', 'android', 'ios'
+}
 
-# 擴充後的忽略副檔名清單 
+# 擴充忽略副檔名：加入 C++ / VS 常見的編譯中間檔與專案設定檔
 IGNORE_EXTS = {
-    '.png', '.jpg', '.jpeg', '.gif', '.exe', '.dll', '.pdf', '.zip', '.tar', '.gz', 
-    '.pyc', '.class', '.o', '.so', '.db', '.csv', '.data', '.log', '.bin', '.mp4', 
-    '.mp3', '.avi', '.mkv', '.iso', '.dmg', '.pkg', '.app', '.apk', '.jar', '.war', '.ear'
+    # 圖片與圖示 (Images & Icons)
+    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico',
+    
+    # 音效與影音 (Audio & Video)
+    '.mp3', '.wav', '.ogg', '.mp4', '.avi', '.mkv',
+    
+    # 3D 模型 (3D Models)
+    '.obj', '.fbx', '.glb', '.gltf', '.blend',
+    
+    # 字體 (Fonts)
+    '.ttf', '.otf', '.woff', '.woff2',
+    
+    # 執行檔、二進位檔與動態連結庫 (Executables & Binaries)
+    '.exe', '.dll', '.so', '.bin', '.class', '.pyc', '.o',
+    
+    # 封裝檔、壓縮檔與安裝檔 (Archives & Packages)
+    '.zip', '.tar', '.gz', '.iso', '.dmg', '.pkg', '.app', '.apk', 
+    '.aab', '.ipa', '.jar', '.war', '.ear', '.pck',
+    
+    # 資料庫、大型資料與日誌 (Data, Docs & Logs)
+    '.db', '.csv', '.data', '.log', '.pdf',
+    
+    # C++ / Visual Studio 編譯與設定檔 (C++ / VS Build Files)
+    '.lib', '.pdb', '.ilk', '.tlog', '.idb', '.lastbuildstate', 
+    '.recipe', '.vcxproj', '.filters', '.user',
+    
+    # Godot 等遊戲引擎專屬 (Game Engine Specific)
+    '.import'
 }
 
 # 預設忽略的檔案集合
@@ -41,8 +69,12 @@ def generate_directory_tree(startpath):
     return tree_str
 
 def generate_file_contents(startpath):
-    """讀取並格式化檔案內容"""
+    """讀取並格式化檔案內容 (支援多種編碼)"""
     content_str = "## 檔案內容 (File Contents)\n\n"
+    
+    # 定義要嘗試的編碼順序 (UTF-8, 帶 BOM 的 UTF-8, 繁體中文 Big5)
+    encodings_to_try = ['utf-8', 'utf-8-sig', 'big5', 'cp950']
+    
     for root, dirs, files in os.walk(startpath):
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
         
@@ -57,17 +89,24 @@ def generate_file_contents(startpath):
             filepath = os.path.join(root, f)
             rel_path = os.path.relpath(filepath, startpath)
             
-            try:
-                with open(filepath, 'r', encoding='utf-8') as file:
-                    file_content = file.read()
-                    
+            file_content = None
+            
+            # 嘗試用不同編碼讀取檔案
+            for enc in encodings_to_try:
+                try:
+                    with open(filepath, 'r', encoding=enc) as file:
+                        file_content = file.read()
+                    break  # 成功讀取就跳出迴圈
+                except UnicodeDecodeError:
+                    continue # 失敗就換下一種編碼試試看
+            
+            if file_content is not None:
                 content_str += f"### File: `{rel_path}`\n"
                 lang = ext[1:] if ext else "text"
                 content_str += f"```{lang}\n{file_content}\n```\n\n"
-            except UnicodeDecodeError:
-                content_str += f"### File: `{rel_path}`\n*[Skipped: Binary or non-UTF-8 file]*\n\n"
-            except Exception as e:
-                content_str += f"### File: `{rel_path}`\n*[Error reading file: {e}]*\n\n"
+            else:
+                # 所有編碼都失敗，才判定為二進位檔
+                content_str += f"### File: `{rel_path}`\n*[Skipped: Binary or unsupported encoding]*\n\n"
                 
     return content_str
 
@@ -84,25 +123,16 @@ def export_project_for_llm(project_dir, output_file):
     print(f"輸出完成！檔案已儲存至: {os.path.abspath(output_file)}")
 
 if __name__ == "__main__":
-    # 初始化 tkinter 並隱藏主視窗
     root = tk.Tk()
     root.withdraw()
     
     print("請在跳出的視窗中選擇你要打包的專案資料夾...")
-    
-    # 開啟選擇目錄的對話框
     target_dir = filedialog.askdirectory(title="選擇要匯出的專案資料夾")
     
     if target_dir:
-        # 取得選擇的資料夾名稱 (使用 normpath 確保路徑格式正確再取 basename)
         folder_name = os.path.basename(os.path.normpath(target_dir))
-        
-        # 組合新的檔名，例如：SimpleDPSystem_project_context.md
         output_filename = f"{folder_name}_project_context.md"
-        
-        # 將動態產生的檔名加入忽略清單
         IGNORE_FILES.add(output_filename)
-        
         export_project_for_llm(target_dir, output_filename)
     else:
         print("已取消選擇。")
