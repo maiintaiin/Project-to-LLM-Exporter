@@ -2,46 +2,54 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
-# 擴充忽略資料夾：加入 Visual Studio 常見的編譯與暫存資料夾
+# ==========================================
+# 過濾清單設定
+# ==========================================
+
+# 忽略的資料夾清單
 IGNORE_DIRS = {
-    '.git', '.vscode', '.idea', '__pycache__', 'node_modules', 'venv', 'env', 
-    'build', 'dist', 'out', 'x64', 'x86', 'Debug', 'Release', '.vs', 'android', 'ios'
+    # 版本控制與 IDE
+    '.git', '.vscode', '.idea', '.vs',
+    # Python 虛擬環境與快取
+    '__pycache__', 'venv', 'env',
+    # Node.js
+    'node_modules',
+    # C++ / Visual Studio 編譯與輸出
+    'build', 'dist', 'out', 'x64', 'x86', 'Debug', 'Release',
+    # Godot 引擎專屬
+    '.godot', '.import', 'export', 'android', 'ios'
 }
 
-# 擴充忽略副檔名：加入 C++ / VS 常見的編譯中間檔與專案設定檔
+# 忽略的副檔名清單
 IGNORE_EXTS = {
-    # 圖片與圖示 (Images & Icons)
+    # 圖片與圖示
     '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico',
-    
-    # 音效與影音 (Audio & Video)
+    # 音效與影音
     '.mp3', '.wav', '.ogg', '.mp4', '.avi', '.mkv',
-    
-    # 3D 模型 (3D Models)
+    # 3D 模型
     '.obj', '.fbx', '.glb', '.gltf', '.blend',
-    
-    # 字體 (Fonts)
+    # 字體
     '.ttf', '.otf', '.woff', '.woff2',
-    
-    # 執行檔、二進位檔與動態連結庫 (Executables & Binaries)
+    # 執行檔、二進位檔與動態連結庫
     '.exe', '.dll', '.so', '.bin', '.class', '.pyc', '.o',
-    
-    # 封裝檔、壓縮檔與安裝檔 (Archives & Packages)
+    # 封裝檔、壓縮檔與安裝檔
     '.zip', '.tar', '.gz', '.iso', '.dmg', '.pkg', '.app', '.apk', 
     '.aab', '.ipa', '.jar', '.war', '.ear', '.pck',
-    
-    # 資料庫、大型資料與日誌 (Data, Docs & Logs)
+    # 資料庫、大型資料與日誌
     '.db', '.csv', '.data', '.log', '.pdf',
-    
-    # C++ / Visual Studio 編譯與設定檔 (C++ / VS Build Files)
+    # C++ / Visual Studio 編譯與設定檔
     '.lib', '.pdb', '.ilk', '.tlog', '.idb', '.lastbuildstate', 
     '.recipe', '.vcxproj', '.filters', '.user',
-    
-    # Godot 等遊戲引擎專屬 (Game Engine Specific)
-    '.import'
+    # Godot 引擎專屬 (包含 .uid)
+    '.import', '.uid'
 }
 
-# 預設忽略的檔案集合
+# 動態忽略清單 (避免腳本把自己產生的 Markdown 也包進去)
 IGNORE_FILES = set() 
+
+# ==========================================
+# 核心邏輯
+# ==========================================
 
 def generate_directory_tree(startpath):
     """生成目錄結構樹"""
@@ -69,7 +77,7 @@ def generate_directory_tree(startpath):
     return tree_str
 
 def generate_file_contents(startpath):
-    """讀取並格式化檔案內容 (支援多種編碼)"""
+    """讀取並格式化檔案內容 (支援多種編碼，防亂碼)"""
     content_str = "## 檔案內容 (File Contents)\n\n"
     
     # 定義要嘗試的編碼順序 (UTF-8, 帶 BOM 的 UTF-8, 繁體中文 Big5)
@@ -102,7 +110,10 @@ def generate_file_contents(startpath):
             
             if file_content is not None:
                 content_str += f"### File: `{rel_path}`\n"
+                # Godot 的腳本標籤為 gdscript 或 gd
                 lang = ext[1:] if ext else "text"
+                if lang == "gd": lang = "gdscript" 
+                
                 content_str += f"```{lang}\n{file_content}\n```\n\n"
             else:
                 # 所有編碼都失敗，才判定為二進位檔
@@ -123,6 +134,7 @@ def export_project_for_llm(project_dir, output_file):
     print(f"輸出完成！檔案已儲存至: {os.path.abspath(output_file)}")
 
 if __name__ == "__main__":
+    # 初始化 tkinter 並隱藏主視窗
     root = tk.Tk()
     root.withdraw()
     
@@ -132,7 +144,10 @@ if __name__ == "__main__":
     if target_dir:
         folder_name = os.path.basename(os.path.normpath(target_dir))
         output_filename = f"{folder_name}_project_context.md"
+        
+        # 將動態產生的檔名加入忽略清單
         IGNORE_FILES.add(output_filename)
+        
         export_project_for_llm(target_dir, output_filename)
     else:
         print("已取消選擇。")
