@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
+<<<<<<< HEAD
 # ==========================================
 # 過濾清單設定
 # ==========================================
@@ -18,6 +19,21 @@ IGNORE_DIRS = {
     'build', 'dist', 'out', 'x64', 'x86', 'Debug', 'Release',
     # Godot 引擎專屬
     '.godot', '.import', 'export', 'android', 'ios'
+=======
+# 擴充忽略資料夾：加入 Visual Studio 常見的編譯與暫存資料夾
+IGNORE_DIRS = {
+    '.git', '.vscode', '.idea', '__pycache__', 'node_modules', 'venv', 'env', 
+    'build', 'dist', 'out', 'x64', 'x86', 'Debug', 'Release', '.vs'
+}
+
+# 擴充忽略副檔名：加入 C++ / VS 常見的編譯中間檔與專案設定檔
+IGNORE_EXTS = {
+    '.png', '.jpg', '.jpeg', '.gif', '.exe', '.dll', '.pdf', '.zip', '.tar', '.gz', 
+    '.pyc', '.class', '.o', '.so', '.db', '.csv', '.data', '.log', '.bin', '.mp4', 
+    '.mp3', '.avi', '.mkv', '.iso', '.dmg', '.pkg', '.app', '.apk', '.jar', '.war', '.ear',
+    '.obj', '.lib', '.pdb', '.ilk', '.tlog', '.idb', '.lastbuildstate', '.recipe', 
+    '.vcxproj', '.filters', '.user', '.bmp'
+>>>>>>> 1dfbbfa9d80fba4b056808aca08f2657d826c896
 }
 
 # 忽略的副檔名清單
@@ -77,7 +93,11 @@ def generate_directory_tree(startpath):
     return tree_str
 
 def generate_file_contents(startpath):
+<<<<<<< HEAD
     """讀取並格式化檔案內容 (支援多種編碼，防亂碼)"""
+=======
+    """讀取並格式化檔案內容 (支援多種編碼)"""
+>>>>>>> 1dfbbfa9d80fba4b056808aca08f2657d826c896
     content_str = "## 檔案內容 (File Contents)\n\n"
     
     # 定義要嘗試的編碼順序 (UTF-8, 帶 BOM 的 UTF-8, 繁體中文 Big5)
@@ -134,7 +154,6 @@ def export_project_for_llm(project_dir, output_file):
     print(f"輸出完成！檔案已儲存至: {os.path.abspath(output_file)}")
 
 if __name__ == "__main__":
-    # 初始化 tkinter 並隱藏主視窗
     root = tk.Tk()
     root.withdraw()
     
@@ -144,10 +163,7 @@ if __name__ == "__main__":
     if target_dir:
         folder_name = os.path.basename(os.path.normpath(target_dir))
         output_filename = f"{folder_name}_project_context.md"
-        
-        # 將動態產生的檔名加入忽略清單
         IGNORE_FILES.add(output_filename)
-        
         export_project_for_llm(target_dir, output_filename)
     else:
         print("已取消選擇。")
